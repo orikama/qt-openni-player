@@ -4,6 +4,10 @@
 #include <QtMultimedia/qmediaplayer.h>
 
 
+#include "OniFrameSource.hpp"
+#include "onistream.hpp"
+
+
 QT_BEGIN_NAMESPACE
 class QAbstractButton;
 class QSlider;
@@ -20,22 +24,29 @@ public:
     VideoPlayer(QWidget* parent = nullptr);
     ~VideoPlayer() = default;
 
-    void SetUrl(const QUrl& url);
+    void SetUrl(const QString& url);
 
 public slots:
-    void OpenFile();
-    void Play();
+    void openFile();
+    void play();
+    void frameBack();
+    void frameForward();
 
 private slots:
-    void mediaStateChanged(QMediaPlayer::State state);
-    void positionChanged(qint64 position);
-    void durationChanged(qint64 duration);
+    void durationChanged(int duration);
+    void mediaStateChanged(OniFrameSource::State state);
+    void positionChanged(int position);
     void setPosition(qint32 position);
     void handleError();
 
 private:
-    QMediaPlayer*       m_mediaPlayer;
+    OniFrameSource      m_frameSource;
+    OniFrameProvider    m_frameProvider;
+
+    //QMediaPlayer*       m_mediaPlayer;
     QAbstractButton*    m_playButton;
+    QAbstractButton*    m_frameBackButton;
+    QAbstractButton*    m_frameForwardButton;
     QSlider*            m_positionSlider;
     QLabel*             m_errorLabel;
 };
