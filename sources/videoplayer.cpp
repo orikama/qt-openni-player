@@ -7,13 +7,18 @@
 VideoPlayer::VideoPlayer(QWidget* parent /*= nullptr*/)
     : QWidget(parent)
 {
-    //m_mediaPlayer = new QMediaPlayer(this, QMediaPlayer::VideoSurface);
-    auto videoWidget = new QVideoWidget;
-    m_frameProvider.setVideoSurface(videoWidget->videoSurface());
-    connect(&m_frameSource, &OniFrameSource::newFrameAvailable, &m_frameProvider, &OniFrameProvider::onNewVideoContentReceived);
     connect(&m_frameSource, &OniFrameSource::durationChanged, this, &VideoPlayer::durationChanged);
     connect(&m_frameSource, &OniFrameSource::positionChanged, this, &VideoPlayer::positionChanged);
     connect(&m_frameSource, &OniFrameSource::stateChanged, this, &VideoPlayer::mediaStateChanged);
+
+    //m_mediaPlayer = new QMediaPlayer(this, QMediaPlayer::VideoSurface);
+    auto colorVideoWidget = new QVideoWidget;
+    m_colorFrameProvider.setVideoSurface(colorVideoWidget->videoSurface());
+    connect(&m_frameSource, &OniFrameSource::newColorFrame, &m_colorFrameProvider, &OniFrameProvider::onNewVideoContentReceived);
+    
+    auto depthVideoWidget = new QVideoWidget;
+    m_depthFrameProvider.setVideoSurface(depthVideoWidget->videoSurface());
+    connect(&m_frameSource, &OniFrameSource::newDepthFrame, &m_depthFrameProvider, &OniFrameProvider::onNewVideoContentReceived);
 
     auto openButton = new QPushButton(tr("Open..."));
     connect(openButton, &QAbstractButton::clicked, this, &VideoPlayer::openFile);
@@ -40,6 +45,10 @@ VideoPlayer::VideoPlayer(QWidget* parent /*= nullptr*/)
     m_errorLabel = new QLabel;
     m_errorLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
+    auto framesLayout = new QHBoxLayout;
+    framesLayout->addWidget(colorVideoWidget);
+    framesLayout->addWidget(depthVideoWidget);
+
     auto controlLayout = new QHBoxLayout;
     controlLayout->setContentsMargins(0, 0, 0, 0);
     controlLayout->addWidget(openButton);
@@ -48,7 +57,7 @@ VideoPlayer::VideoPlayer(QWidget* parent /*= nullptr*/)
     controlLayout->addWidget(m_frameForwardButton);
 
     auto layout = new QVBoxLayout;
-    layout->addWidget(videoWidget);
+    layout->addLayout(framesLayout);
     layout->addWidget(m_positionSlider);
     layout->addLayout(controlLayout);
     layout->addWidget(m_errorLabel);
@@ -69,7 +78,8 @@ void VideoPlayer::SetUrl(const QString& url)
     //setWindowFilePath(url.isLocalFile() ? url.toLocalFile() : QString());
     //m_mediaPlayer->setMedia(url);
     m_frameSource.loadOniFile(url);
-    m_frameProvider.setFormat(m_frameSource.width(), m_frameSource.height(), m_frameSource.pixelFormat());
+    m_colorFrameProvider.setFormat(m_frameSource.width(), m_frameSource.height(), m_frameSource.colorPixelFormat());
+    m_depthFrameProvider.setFormat(m_frameSource.width(), m_frameSource.height(), m_frameSource.colorPixelFormat());
 
     m_playButton->setEnabled(true);
     m_frameBackButton->setEnabled(true);
@@ -106,7 +116,7 @@ void VideoPlayer::play()
 
 void VideoPlayer::frameBack()
 {
-    if(m_frameSource.state() == OniFrameSource::State::Paused) {
+    if (m_frameSource.state() == OniFrameSource::State::Paused) {
         m_frameSource.setPosition(m_positionSlider->value() - 1);
     }
 }
@@ -143,7 +153,7 @@ void VideoPlayer::positionChanged(int position)
 
 void VideoPlayer::setPosition(int position)
 {
-   m_frameSource.setPosition(position);
+    m_frameSource.setPosition(position);
 }
 
 void VideoPlayer::handleError()

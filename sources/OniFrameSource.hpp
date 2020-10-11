@@ -27,7 +27,8 @@ class OniFrameSource : public QObject
     Q_PROPERTY(State state READ state)
     Q_PROPERTY(int width READ width)
     Q_PROPERTY(int height READ height)
-    Q_PROPERTY(QVideoFrame::PixelFormat pixelFormat READ pixelFormat)
+    Q_PROPERTY(QVideoFrame::PixelFormat colorPixelFormat READ colorPixelFormat)
+    //Q_PROPERTY(QVideoFrame::PixelFormat depthPixelFormat READ depthPixelFormat)
 
 public:
     enum class State
@@ -43,7 +44,7 @@ public:
 
     int width() const;
     int height() const;
-    QVideoFrame::PixelFormat pixelFormat() const;
+    QVideoFrame::PixelFormat colorPixelFormat() const;
 
     void loadOniFile(const QString& url);
 
@@ -58,25 +59,29 @@ signals:
     void durationChanged(int duration);
     void positionChanged(int position);
 
-    void newFrameAvailable(const QVideoFrame& frame);
+    void newColorFrame(const QVideoFrame& frame);
+    void newDepthFrame(const QVideoFrame& frame);
 
 private slots:
     void processFrame();
 
 private:
    // std::unique_ptr<openni::Device> m_device;
-    openni::Device m_device;
-    openni::PlaybackControl* m_playbackControl = nullptr;
-    openni::VideoStream m_colorStream;
+    openni::Device              m_device;
+    openni::PlaybackControl*    m_playbackControl = nullptr;
+    openni::VideoStream         m_colorStream;
+    openni::VideoStream         m_depthStream;
 
-    State m_state;
+    uchar**                     m_depthFrameBuffer;
 
-    int m_width;
-    int m_height;
-    QVideoFrame::PixelFormat m_pixelFormat;
+    State                       m_state;
 
-    int m_numberOfFrames;
-    int m_currentFrame;
-    int m_framerate;
-    QTimer m_timer;
+    int                         m_width;
+    int                         m_height;
+    QVideoFrame::PixelFormat    m_colorPixelFormat;
+
+    int                         m_numberOfFrames;
+    int                         m_currentFrame;
+    int                         m_framerate;
+    QTimer                      m_timer;
 };

@@ -19,6 +19,10 @@ QVideoFrame::PixelFormat oniToQtPixelFormat(openni::PixelFormat oniFormat)
     switch (oniFormat) {
         case openni::PixelFormat::PIXEL_FORMAT_RGB888:
             return QVideoFrame::PixelFormat::Format_RGB24;
+        /*case openni::PixelFormat::PIXEL_FORMAT_GRAY8:
+            return QVideoFrame::PixelFormat::Format_Y8;
+        case openni::PixelFormat::PIXEL_FORMAT_DEPTH_1_MM:
+            return QVideoFrame::PixelFormat::Format_Y16;*/
     }
 }
 
@@ -33,6 +37,7 @@ QImage::Format oniToQtFormat(openni::PixelFormat oniFormat)
 
 OniFrameSource::OniFrameSource()
     : m_state(State::Stopped)
+    , m_depthFrameBuffer(nullptr)
 {
     openniCheckError(openni::OpenNI::initialize());
 
@@ -41,8 +46,10 @@ OniFrameSource::OniFrameSource()
 
 OniFrameSource::~OniFrameSource()
 {
-    m_device.close();
+
     m_colorStream.destroy();
+    m_depthStream.destroy();
+    m_device.close();
 
     openni::OpenNI::shutdown();
 }
@@ -63,23 +70,21 @@ int OniFrameSource::height() const
     return m_height;
 }
 
-QVideoFrame::PixelFormat OniFrameSource::pixelFormat() const
+QVideoFrame::PixelFormat OniFrameSource::colorPixelFormat() const
 {
-    return m_pixelFormat;
+    return m_colorPixelFormat;
 }
 
 
 void OniFrameSource::loadOniFile(const QString& url)
 {
-    if (m_colorStream.isValid()) {
-        m_colorStream.destroy();
-    }
-    if (m_device.isValid()) {
-        m_device.close();
-    }
+    m_colorStream.destroy();
+    m_depthStream.destroy();
+    m_device.close();
 
     openniCheckError(m_device.open(url.toLocal8Bit().data()));
     openniCheckError(m_colorStream.create(m_device, openni::SensorType::SENSOR_COLOR));
+    openniCheckError(m_depthStream.create(m_device, openni::SensorType::SENSOR_DEPTH));
 
     m_playbackControl = m_device.getPlaybackControl();
     m_playbackControl->setRepeatEnabled(false);
@@ -87,13 +92,22 @@ void OniFrameSource::loadOniFile(const QString& url)
     m_numberOfFrames = m_playbackControl->getNumberOfFrames(m_colorStream);
     m_currentFrame = -1;
 
-    auto mode = m_colorStream.getVideoMode();
-    m_width = mode.getResolutionX();
-    m_height = mode.getResolutionY();
-    m_pixelFormat = oniToQtPixelFormat(mode.getPixelFormat());
-    m_framerate = mode.getFps();
+    const auto colorMode = m_colorStream.getVideoMode();
+    m_width = colorMode.getResolutionX();
+    m_height = colorMode.getResolutionY();
+    m_colorPixelFormat = oniToQtPixelFormat(colorMode.getPixelFormat());
+    m_framerate = colorMode.getFps();
+
+    /*const auto depthMode = m_depthStream.getVideoMode();
+    auto width = depthMode.getResolutionX();
+    auto height = depthMode.getResolutionY();
+    m_depthPixelFormat = oniToQtPixelFormat(depthMode.getPixelFormat());
+    auto framerate = depthMode.getFps();
+
+    printf("DEPTH - width: %d, height: %d, format: %d, framerate: %d\n", width, height, m_depthPixelFormat, framerate);*/
 
     openniCheckError(m_colorStream.start());
+    openniCheckError(m_depthStream.start());
 
     emit durationChanged(m_numberOfFrames);
 }
@@ -135,27 +149,42 @@ void OniFrameSource::setPosition(int position)
 void OniFrameSource::processFrame()
 {
     if (m_currentFrame < m_numberOfFrames - 1) {
-        openni::VideoFrameRef frameRef;
-        openniCheckError(m_colorStream.readFrame(&frameRef));
+        openni::VideoFrameRef colorFrameRef;
+        openniCheckError(m_colorStream.readFrame(&colorFrameRef));
 
         //QSize qsize(frameRef.getWidth(), frameRef.getHeight());
         //auto format = QVideoFrame::PixelFormat::Format_RGB24;
-        auto stride = frameRef.getWidth() * 3;
+        auto colorBytesPerLine = colorFrameRef.getWidth() * 3;
 
-        QImage image((uchar*)frameRef.getData(), frameRef.getWidth(), frameRef.getHeight(),
-                     stride, QImage::Format::Format_RGB888);
-        QVideoFrame frame(image);
+        QImage colorImage((uchar*)colorFrameRef.getData(), colorFrameRef.getWidth(), colorFrameRef.getHeight(),
+                          colorBytesPerLine, QImage::Format::Format_RGB888);
+        QVideoFrame colorFrame(colorImage);
 
         //QVideoFrame frame(frameRef.getDataSize(), qsize, stride, static_cast<QVideoFrame::PixelFormat>(m_pixelFormat));
         //frame.map(QAbstractVideoBuffer::MapMode::WriteOnly);
         //frame.unmap();
 
-        emit newFrameAvailable(frame);
-        emit positionChanged(frameRef.getFrameIndex());
-        m_currentFrame = frameRef.getFrameIndex();
-        printf("FRAME: %d, My Frame %d\n", frameRef.getFrameIndex(), m_currentFrame);
+        // DEPTH FRAME
+        openni::VideoFrameRef depthFrameRef;
+        openniCheckError(m_depthStream.readFrame(&depthFrameRef));
+
+        auto depthBytesPerLine = depthFrameRef.getWidth() * 2;
+
+        QImage depthImage((uchar*)depthFrameRef.getData(), depthFrameRef.getWidth(), depthFrameRef.getHeight(),
+                          depthBytesPerLine, QImage::Format::Format_Grayscale16);
+        QVideoFrame depthFrame(depthImage.convertToFormat(QImage::Format::Format_RGB888));
+        depthImage.d
+
+        emit newColorFrame(colorFrame);
+        emit newDepthFrame(depthFrame);
+        emit positionChanged(colorFrameRef.getFrameIndex());
+
+        m_currentFrame = colorFrameRef.getFrameIndex();
+        //printf("FRAME: %d, My Frame %d\n", colorFrameRef.getFrameIndex(), m_currentFrame);
     }
     else {
         emit stateChanged(State::Stopped);
     }
 }
+
+

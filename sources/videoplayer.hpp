@@ -41,7 +41,8 @@ private slots:
 
 private:
     OniFrameSource      m_frameSource;
-    OniFrameProvider    m_frameProvider;
+    OniFrameProvider    m_colorFrameProvider;
+    OniFrameProvider    m_depthFrameProvider;
 
     //QMediaPlayer*       m_mediaPlayer;
     QAbstractButton*    m_playButton;
