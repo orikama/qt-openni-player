@@ -64,6 +64,9 @@ signals:
 
 private slots:
     void processFrame();
+    void processDepthFrame1();
+    void processDepthFrame2();
+    void processDepthFrame3();
 
 private:
    // std::unique_ptr<openni::Device> m_device;
@@ -72,7 +75,7 @@ private:
     openni::VideoStream         m_colorStream;
     openni::VideoStream         m_depthStream;
 
-    uchar**                     m_depthFrameBuffer;
+    quint8*                      m_depthFrameBuffer;
 
     State                       m_state;
 

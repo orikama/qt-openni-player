@@ -46,6 +46,9 @@ OniFrameSource::OniFrameSource()
 
 OniFrameSource::~OniFrameSource()
 {
+    if (m_depthFrameBuffer != nullptr) {
+        delete[] m_depthFrameBuffer;
+    }
 
     m_colorStream.destroy();
     m_depthStream.destroy();
@@ -78,6 +81,10 @@ QVideoFrame::PixelFormat OniFrameSource::colorPixelFormat() const
 
 void OniFrameSource::loadOniFile(const QString& url)
 {
+    if (m_depthFrameBuffer != nullptr) {
+        delete[] m_depthFrameBuffer;
+    }
+
     m_colorStream.destroy();
     m_depthStream.destroy();
     m_device.close();
@@ -97,6 +104,8 @@ void OniFrameSource::loadOniFile(const QString& url)
     m_height = colorMode.getResolutionY();
     m_colorPixelFormat = oniToQtPixelFormat(colorMode.getPixelFormat());
     m_framerate = colorMode.getFps();
+
+    m_depthFrameBuffer = new quint8[m_height * m_height * 3];
 
     /*const auto depthMode = m_depthStream.getVideoMode();
     auto width = depthMode.getResolutionX();
@@ -165,18 +174,12 @@ void OniFrameSource::processFrame()
         //frame.unmap();
 
         // DEPTH FRAME
-        openni::VideoFrameRef depthFrameRef;
-        openniCheckError(m_depthStream.readFrame(&depthFrameRef));
-
-        auto depthBytesPerLine = depthFrameRef.getWidth() * 2;
-
-        QImage depthImage((uchar*)depthFrameRef.getData(), depthFrameRef.getWidth(), depthFrameRef.getHeight(),
-                          depthBytesPerLine, QImage::Format::Format_Grayscale16);
-        QVideoFrame depthFrame(depthImage.convertToFormat(QImage::Format::Format_RGB888));
-        depthImage.d
+        //processDepthFrame1();
+        //processDepthFrame2();
+        processDepthFrame3();
 
         emit newColorFrame(colorFrame);
-        emit newDepthFrame(depthFrame);
+        //emit newDepthFrame(depthFrame);
         emit positionChanged(colorFrameRef.getFrameIndex());
 
         m_currentFrame = colorFrameRef.getFrameIndex();
@@ -187,4 +190,124 @@ void OniFrameSource::processFrame()
     }
 }
 
+void OniFrameSource::processDepthFrame1()
+{
+    openni::VideoFrameRef depthFrameRef;
+    openniCheckError(m_depthStream.readFrame(&depthFrameRef));
 
+    auto depthBytesPerLine = depthFrameRef.getWidth() * 2;
+
+    QImage depthImage((uchar*)depthFrameRef.getData(), depthFrameRef.getWidth(), depthFrameRef.getHeight(),
+                      depthBytesPerLine, QImage::Format::Format_Grayscale16);
+    QVideoFrame depthFrame(depthImage.convertToFormat(QImage::Format::Format_RGB888));
+
+    emit newDepthFrame(depthFrame);
+}
+
+void OniFrameSource::processDepthFrame2()
+{
+    const auto depthWidth = m_width;
+    const auto bufferWidth = m_width * 3;
+
+    openni::VideoFrameRef depthFrameRef;
+    openniCheckError(m_depthStream.readFrame(&depthFrameRef));
+
+    auto depthPixels = static_cast<const quint16*>(depthFrameRef.getData());
+
+    quint16 maxDepthValue = 0;
+
+    // NOTE: Не учитывается 'stride'
+    for (int i = 0; i < m_height; ++i) {
+        const auto depthRow = i * depthWidth;
+
+        for (int j = 0; j < m_width; ++j) {
+            if (maxDepthValue < depthPixels[depthRow + j]) {
+                maxDepthValue = depthPixels[depthRow + j];
+            }
+        }
+    }
+
+    for (int i = 0; i < m_height; ++i) {
+        const auto depthRow = i * depthWidth;
+        const auto bufferRow = i * bufferWidth;
+
+        for (int j = 0; j < m_width; ++j) {
+            const auto bufferColumn = bufferRow + j * 3;
+
+            if (depthPixels[depthRow + j] != 0) {
+                const quint8 depthValue = float(depthPixels[depthRow + j]) / maxDepthValue * 255;
+
+                m_depthFrameBuffer[bufferColumn] = 255 - depthValue;
+                m_depthFrameBuffer[bufferColumn + 1] = 255 - depthValue;
+                m_depthFrameBuffer[bufferColumn + 2] = 255 - depthValue;
+            }
+            else {
+                m_depthFrameBuffer[bufferColumn] = 0;
+                m_depthFrameBuffer[bufferColumn + 1] = 0;
+                m_depthFrameBuffer[bufferColumn + 2] = 0;
+            }
+        }
+    }
+
+    QImage depthImage(m_depthFrameBuffer, depthFrameRef.getWidth(), depthFrameRef.getHeight(),
+                      bufferWidth, QImage::Format::Format_RGB888);
+    QVideoFrame depthFrame(depthImage);
+
+    emit newDepthFrame(depthFrame);
+}
+
+void OniFrameSource::processDepthFrame3()
+{
+    const auto depthWidth = m_width;
+    const auto bufferWidth = m_width * 3;
+
+    openni::VideoFrameRef depthFrameRef;
+    openniCheckError(m_depthStream.readFrame(&depthFrameRef));
+
+    auto depthPixels = static_cast<const quint16*>(depthFrameRef.getData());
+
+    int depthHistogram[65536] = {};
+    int numberOfDepthValues = 0;
+
+    for (int i = 0; i < m_height; ++i) {
+        const auto depthRow = i * depthWidth;
+
+        for (int j = 0; j < m_width; ++j) {
+            if (depthPixels[depthRow + j] != 0) {
+                ++depthHistogram[depthPixels[depthRow + j]];
+                ++numberOfDepthValues;
+            }
+        }
+    }
+
+    for (int i = 1; i < 65536; ++i) {
+        depthHistogram[i] += depthHistogram[i - 1];
+    }
+
+    for (int i = 0; i < m_height; ++i) {
+        const auto depthRow = i * depthWidth;
+        const auto bufferRow = i * bufferWidth;
+
+        for (int j = 0; j < m_width; ++j) {
+            const auto bufferColumn = bufferRow + j * 3;
+
+            if (depthPixels[depthRow + j] != 0) {
+                const quint8 depthValue = float(depthHistogram[depthPixels[depthRow + j]]) / numberOfDepthValues * 255;
+
+                m_depthFrameBuffer[bufferColumn] = 255 - depthValue;
+                m_depthFrameBuffer[bufferColumn + 1] = 255 - depthValue;
+                m_depthFrameBuffer[bufferColumn + 2] = 255 - depthValue;
+            } else {
+                m_depthFrameBuffer[bufferColumn] = 0;
+                m_depthFrameBuffer[bufferColumn + 1] = 0;
+                m_depthFrameBuffer[bufferColumn + 2] = 0;
+            }
+        }
+    }
+
+    QImage depthImage(m_depthFrameBuffer, depthFrameRef.getWidth(), depthFrameRef.getHeight(),
+                      bufferWidth, QImage::Format::Format_RGB888);
+    QVideoFrame depthFrame(depthImage);
+
+    emit newDepthFrame(depthFrame);
+}
