@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include <openni2/OpenNI.h>
+#include <OpenNI.h>
 
 #include <QtCore/qobject.h>
 #include <QtCore/qtimer.h>
