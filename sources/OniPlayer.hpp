@@ -3,9 +3,8 @@
 #include <QtWidgets/qwidget.h>
 #include <QtMultimedia/qmediaplayer.h>
 
-
 #include "OniFrameSource.hpp"
-#include "onistream.hpp"
+#include "OniFrameProvider.hpp"
 
 
 QT_BEGIN_NAMESPACE
@@ -16,13 +15,13 @@ class QUrl;
 QT_END_NAMESPACE
 
 
-class VideoPlayer : public QWidget
+class OniPlayer : public QWidget
 {
     Q_OBJECT
 
 public:
-    VideoPlayer(QWidget* parent = nullptr);
-    ~VideoPlayer() = default;
+    OniPlayer(QWidget* parent = nullptr);
+    ~OniPlayer() = default;
 
     void SetUrl(const QString& url);
 
@@ -36,15 +35,13 @@ private slots:
     void durationChanged(int duration);
     void mediaStateChanged(OniFrameSource::State state);
     void positionChanged(int position);
-    void setPosition(qint32 position);
-    void handleError();
+    void setPosition(int position);
 
 private:
     OniFrameSource      m_frameSource;
     OniFrameProvider    m_colorFrameProvider;
     OniFrameProvider    m_depthFrameProvider;
 
-    //QMediaPlayer*       m_mediaPlayer;
     QAbstractButton*    m_playButton;
     QAbstractButton*    m_frameBackButton;
     QAbstractButton*    m_frameForwardButton;

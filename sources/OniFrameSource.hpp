@@ -1,24 +1,12 @@
 #pragma once
 
-//#include <memory>
-
-#include <QtCore/qobject.h>
+#include <memory>
 
 #include <openni2/OpenNI.h>
 
-
+#include <QtCore/qobject.h>
 #include <QtCore/qtimer.h>
 #include <QtMultimedia/qvideoframe.h>
-//QT_BEGIN_NAMESPACE
-//class QVideoFrame;
-//QT_END_NAMESPACE
-
-
-//namespace openni
-//{
-//class Device;
-//class VideoStream;
-//}
 
 
 class OniFrameSource : public QObject
@@ -27,8 +15,7 @@ class OniFrameSource : public QObject
     Q_PROPERTY(State state READ state)
     Q_PROPERTY(int width READ width)
     Q_PROPERTY(int height READ height)
-    Q_PROPERTY(QVideoFrame::PixelFormat colorPixelFormat READ colorPixelFormat)
-    //Q_PROPERTY(QVideoFrame::PixelFormat depthPixelFormat READ depthPixelFormat)
+    Q_PROPERTY(QVideoFrame::PixelFormat pixelFormat READ pixelFormat)
 
 public:
     enum class State
@@ -37,14 +24,14 @@ public:
     };
 
 
-    OniFrameSource();
+    OniFrameSource(QObject* parent = nullptr);
     ~OniFrameSource();
 
     State state() const;
 
     int width() const;
     int height() const;
-    QVideoFrame::PixelFormat colorPixelFormat() const;
+    QVideoFrame::PixelFormat pixelFormat() const;
 
     void loadOniFile(const QString& url);
 
@@ -67,21 +54,22 @@ private slots:
     void processDepthFrame1();
     void processDepthFrame2();
     void processDepthFrame3();
+    void processDepthFrame4();
 
 private:
-   // std::unique_ptr<openni::Device> m_device;
     openni::Device              m_device;
-    openni::PlaybackControl*    m_playbackControl = nullptr;
+    openni::PlaybackControl*    m_playbackControl;
     openni::VideoStream         m_colorStream;
     openni::VideoStream         m_depthStream;
 
-    quint8*                      m_depthFrameBuffer;
+    //std::unique_ptr<quint8[]>   m_depthFrameBuffer;
+    quint8*                     m_depthFrameBuffer;
 
     State                       m_state;
 
     int                         m_width;
     int                         m_height;
-    QVideoFrame::PixelFormat    m_colorPixelFormat;
+    QVideoFrame::PixelFormat    m_pixelFormat;
 
     int                         m_numberOfFrames;
     int                         m_currentFrame;

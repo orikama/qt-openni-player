@@ -9,14 +9,14 @@ set(CMAKE_AUTOUIC ON)
 
 find_package(Qt5 COMPONENTS Core Gui Widgets Multimedia MultimediaWidgets REQUIRED)
 find_library(openni2 REQUIRED)
-message("MESSAGE: ${openni2}")
+
 
 set(openni_player_SRC_DIR "${PROJECT_SOURCE_DIR}/sources")
 set(openni_player_SRC ${openni_player_SRC_DIR}/main.cpp
-                      ${openni_player_SRC_DIR}/videoplayer.hpp
-                      ${openni_player_SRC_DIR}/videoplayer.cpp
-                      ${openni_player_SRC_DIR}/onistream.hpp
-                      ${openni_player_SRC_DIR}/onistream.cpp
+                      ${openni_player_SRC_DIR}/OniPlayer.hpp
+                      ${openni_player_SRC_DIR}/OniPlayer.cpp
+                      ${openni_player_SRC_DIR}/OniFrameProvider.hpp
+                      ${openni_player_SRC_DIR}/OniFrameProvider.cpp
                       ${openni_player_SRC_DIR}/OniFrameSource.hpp
                       ${openni_player_SRC_DIR}/OniFrameSource.cpp)
 
