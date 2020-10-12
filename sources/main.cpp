@@ -9,7 +9,7 @@ int main(int argc, char* argv[])
     QApplication app(argc, argv);
 
     QCoreApplication::setApplicationName("Oni Player");
-    QGuiApplication::setApplicationDisplayName(QCoreApplication::applicationName());
+    QGuiApplication::setApplicationDisplayName("Oni Player");
 
     OniPlayer player;
 

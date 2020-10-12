@@ -48,9 +48,6 @@ OniPlayer::OniPlayer(QWidget* parent /*= nullptr*/)
     m_positionSlider->setRange(0, 0);
     connect(m_positionSlider, &QAbstractSlider::sliderMoved, this, &OniPlayer::setPosition);
 
-    m_errorLabel = new QLabel;
-    m_errorLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-
     auto framesLayout = new QHBoxLayout;
     framesLayout->addWidget(colorVideoWidget);
     framesLayout->addWidget(depthVideoWidget);
@@ -67,16 +64,14 @@ OniPlayer::OniPlayer(QWidget* parent /*= nullptr*/)
     layout->addLayout(framesLayout);
     layout->addWidget(m_positionSlider);
     layout->addLayout(controlLayout);
-    layout->addWidget(m_errorLabel);
 
     setLayout(layout);
 }
 
 
-void OniPlayer::SetUrl(const QString& url)
+void OniPlayer::SetFile(const QString& filePath)
 {
-    m_errorLabel->setText(QString());
-    m_frameSource.loadOniFile(url);
+    m_frameSource.loadOniFile(filePath);
     m_colorFrameProvider.setFormat(m_frameSource.colorFrameWidth(), m_frameSource.colorFrameHeight(), m_frameSource.pixelFormat());
     m_depthFrameProvider.setFormat(m_frameSource.depthFrameWidth(), m_frameSource.depthFrameHeight(), m_frameSource.pixelFormat());
 
@@ -94,9 +89,8 @@ void OniPlayer::openFile()
     fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
     fileDialog.setWindowTitle("Open .oni file");
     fileDialog.setNameFilter("Oni (*.oni)");
-    fileDialog.setDirectory(QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).value(0, QDir::homePath()));
     if (fileDialog.exec() == QDialog::Accepted) {
-        SetUrl(fileDialog.selectedFiles().constFirst());
+        SetFile(fileDialog.selectedFiles().constFirst());
     }
 }
 
@@ -141,13 +135,11 @@ void OniPlayer::depthModeChanged(int index)
 
 void OniPlayer::mediaStateChanged(OniFrameSource::State state)
 {
-    switch (state) {
-        case OniFrameSource::State::Playing:
-            m_playButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
-            break;
-        default:
-            m_playButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
-            break;
+    if (state == OniFrameSource::State::Playing) {
+        m_playButton->setIcon(style()->standardIcon(QStyle::SP_MediaPause));
+    }
+    else {
+        m_playButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
     }
 }
 

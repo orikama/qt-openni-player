@@ -10,7 +10,6 @@
 QT_BEGIN_NAMESPACE
 class QAbstractButton;
 class QSlider;
-class QLabel;
 class QUrl;
 class QComboBox;
 QT_END_NAMESPACE
@@ -24,7 +23,7 @@ public:
     OniPlayer(QWidget* parent = nullptr);
     ~OniPlayer() = default;
 
-    void SetUrl(const QString& url);
+    void SetFile(const QString& filePath);
 
 public slots:
     void openFile();
@@ -49,5 +48,4 @@ private:
     QAbstractButton*    m_frameBackButton;
     QAbstractButton*    m_frameForwardButton;
     QSlider*            m_positionSlider;
-    QLabel*             m_errorLabel;
 };
