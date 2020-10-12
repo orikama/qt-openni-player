@@ -13,14 +13,21 @@ OniPlayer::OniPlayer(QWidget* parent /*= nullptr*/)
 
     auto colorVideoWidget = new QVideoWidget;
     m_colorFrameProvider.setVideoSurface(colorVideoWidget->videoSurface());
-    connect(&m_frameSource, &OniFrameSource::newColorFrame, &m_colorFrameProvider, &OniFrameProvider::onNewVideoContentReceived);
+    connect(&m_frameSource, &OniFrameSource::newColorFrame, &m_colorFrameProvider, &OniFrameProvider::newOniFrameReceived);
     
     auto depthVideoWidget = new QVideoWidget;
     m_depthFrameProvider.setVideoSurface(depthVideoWidget->videoSurface());
-    connect(&m_frameSource, &OniFrameSource::newDepthFrame, &m_depthFrameProvider, &OniFrameProvider::onNewVideoContentReceived);
+    connect(&m_frameSource, &OniFrameSource::newDepthFrame, &m_depthFrameProvider, &OniFrameProvider::newOniFrameReceived);
 
-    auto openButton = new QPushButton(tr("Open..."));
+    auto openButton = new QPushButton("Open...");
     connect(openButton, &QAbstractButton::clicked, this, &OniPlayer::openFile);
+
+    m_depthModeComboBox = new QComboBox;
+    m_depthModeComboBox->addItem("Base");
+    m_depthModeComboBox->addItem("Normalized");
+    m_depthModeComboBox->addItem("Histogram");
+    m_depthModeComboBox->addItem("Colored");
+    connect(m_depthModeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &OniPlayer::depthModeChanged);
 
     m_playButton = new QPushButton;
     m_playButton->setEnabled(false);
@@ -51,6 +58,7 @@ OniPlayer::OniPlayer(QWidget* parent /*= nullptr*/)
     auto controlLayout = new QHBoxLayout;
     controlLayout->setContentsMargins(0, 0, 0, 0);
     controlLayout->addWidget(openButton);
+    controlLayout->addWidget(m_depthModeComboBox);
     controlLayout->addWidget(m_playButton);
     controlLayout->addWidget(m_frameBackButton);
     controlLayout->addWidget(m_frameForwardButton);
@@ -68,14 +76,15 @@ OniPlayer::OniPlayer(QWidget* parent /*= nullptr*/)
 void OniPlayer::SetUrl(const QString& url)
 {
     m_errorLabel->setText(QString());
-    //setWindowFilePath(url.isLocalFile() ? url.toLocalFile() : QString());
     m_frameSource.loadOniFile(url);
-    m_colorFrameProvider.setFormat(m_frameSource.width(), m_frameSource.height(), m_frameSource.pixelFormat());
-    m_depthFrameProvider.setFormat(m_frameSource.width(), m_frameSource.height(), m_frameSource.pixelFormat());
+    m_colorFrameProvider.setFormat(m_frameSource.colorFrameWidth(), m_frameSource.colorFrameHeight(), m_frameSource.pixelFormat());
+    m_depthFrameProvider.setFormat(m_frameSource.depthFrameWidth(), m_frameSource.depthFrameHeight(), m_frameSource.pixelFormat());
 
     m_playButton->setEnabled(true);
     m_frameBackButton->setEnabled(true);
     m_frameForwardButton->setEnabled(true);
+
+    m_positionSlider->setValue(0);
 }
 
 
@@ -83,11 +92,8 @@ void OniPlayer::openFile()
 {
     QFileDialog fileDialog(this);
     fileDialog.setAcceptMode(QFileDialog::AcceptOpen);
-    fileDialog.setWindowTitle(tr("Open .oni file"));
-    // TODO: .oni format?
-    /*if (const auto supportedMimeTypes = m_mediaPlayer->supportedMimeTypes(); supportedMimeTypes.isEmpty() == false) {
-        fileDialog.setMimeTypeFilters(supportedMimeTypes);
-    }*/
+    fileDialog.setWindowTitle("Open .oni file");
+    fileDialog.setNameFilter("Oni (*.oni)");
     fileDialog.setDirectory(QStandardPaths::standardLocations(QStandardPaths::MoviesLocation).value(0, QDir::homePath()));
     if (fileDialog.exec() == QDialog::Accepted) {
         SetUrl(fileDialog.selectedFiles().constFirst());
@@ -96,30 +102,28 @@ void OniPlayer::openFile()
 
 void OniPlayer::play()
 {
-    switch (m_frameSource.state()) {
-        case OniFrameSource::State::Playing:
-            m_frameBackButton->setEnabled(true);
-            m_frameForwardButton->setEnabled(true);
-            m_frameSource.pause();
-            break;
-        default:
-            m_frameBackButton->setEnabled(false);
-            m_frameForwardButton->setEnabled(false);
-            m_frameSource.play();
-            break;
+    if (m_frameSource.state() == OniFrameSource::State::Playing) {
+        m_frameBackButton->setEnabled(true);
+        m_frameForwardButton->setEnabled(true);
+        m_frameSource.pause();
+    }
+    else {
+        m_frameBackButton->setEnabled(false);
+        m_frameForwardButton->setEnabled(false);
+        m_frameSource.play();
     }
 }
 
 void OniPlayer::frameBack()
 {
-    if (m_frameSource.state() == OniFrameSource::State::Paused) {
+    if (m_frameSource.state() != OniFrameSource::State::Playing) {
         m_frameSource.setPosition(m_positionSlider->value() - 1);
     }
 }
 
 void OniPlayer::frameForward()
 {
-    if (m_frameSource.state() == OniFrameSource::State::Paused) {
+    if (m_frameSource.state() != OniFrameSource::State::Playing) {
         m_frameSource.setPosition(m_positionSlider->value() + 1);
     }
 }
@@ -128,6 +132,11 @@ void OniPlayer::frameForward()
 void OniPlayer::durationChanged(int duration)
 {
     m_positionSlider->setRange(0, duration);
+}
+
+void OniPlayer::depthModeChanged(int index)
+{
+    m_frameSource.setDepthMode(static_cast<OniFrameSource::DepthMode>(index));
 }
 
 void OniPlayer::mediaStateChanged(OniFrameSource::State state)

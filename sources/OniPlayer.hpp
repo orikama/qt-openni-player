@@ -12,6 +12,7 @@ class QAbstractButton;
 class QSlider;
 class QLabel;
 class QUrl;
+class QComboBox;
 QT_END_NAMESPACE
 
 
@@ -33,6 +34,7 @@ public slots:
 
 private slots:
     void durationChanged(int duration);
+    void depthModeChanged(int index);
     void mediaStateChanged(OniFrameSource::State state);
     void positionChanged(int position);
     void setPosition(int position);
@@ -42,6 +44,7 @@ private:
     OniFrameProvider    m_colorFrameProvider;
     OniFrameProvider    m_depthFrameProvider;
 
+    QComboBox*          m_depthModeComboBox;
     QAbstractButton*    m_playButton;
     QAbstractButton*    m_frameBackButton;
     QAbstractButton*    m_frameForwardButton;

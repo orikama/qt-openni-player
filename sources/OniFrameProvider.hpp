@@ -17,7 +17,7 @@ public:
     void setFormat(int width, int heigth, QVideoFrame::PixelFormat format);
 
 public slots:
-    void onNewVideoContentReceived(const QVideoFrame& frame);
+    void newOniFrameReceived(const QVideoFrame& frame);
 
 private:
     QAbstractVideoSurface*  m_surface = nullptr;

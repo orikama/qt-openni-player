@@ -34,7 +34,7 @@ void OniFrameProvider::setFormat(int width, int heigth, QVideoFrame::PixelFormat
     }
 }
 
-void OniFrameProvider::onNewVideoContentReceived(const QVideoFrame& frame)
+void OniFrameProvider::newOniFrameReceived(const QVideoFrame& frame)
 {
     if (m_surface) {
         m_surface->present(frame);

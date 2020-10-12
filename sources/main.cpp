@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
 
-    QCoreApplication::setApplicationName("Video Widget Example");
+    QCoreApplication::setApplicationName("Oni Player");
     QGuiApplication::setApplicationDisplayName(QCoreApplication::applicationName());
 
     OniPlayer player;
