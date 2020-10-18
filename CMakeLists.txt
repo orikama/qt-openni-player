@@ -90,4 +90,10 @@ file(GLOB OniFile_SRC "${OniFile_DIR}/*.cpp")
 add_library(OniFile SHARED ${OniFile_SRC} ${OpenNI2_FORMATS_SRC} ${LibJPEG_SRC})
 target_link_libraries(OniFile PRIVATE XnLib)
 target_include_directories(OniFile PRIVATE ${OniFile_DIR} ${OpenNI2_INCLUDE_DIR} ${OpenNI2_FORMATS_INCLUDE_DIR} ${LibJPEG_DIR})
-set_target_properties(OniFile PROPERTIES RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:openni_player>/OpenNI2/Drivers/)
+
+if(WIN32)
+    set_target_properties(OniFile PROPERTIES RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:openni_player>/OpenNI2/Drivers/)
+elseif(UNIX AND NOT APPLE)
+    set_target_properties(OniFile PROPERTIES LIBRARY_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:openni_player>/OpenNI2/Drivers/)
+endif()
+
