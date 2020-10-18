@@ -124,7 +124,6 @@ void OniFrameSource::loadOniFile(const QString& path)
 
     m_device.setDepthColorSyncEnabled(true);
     m_playbackControl = m_device.getPlaybackControl();
-    m_playbackControl->setRepeatEnabled(false);
     m_playbackControl->setSpeed(-1.0f);
     m_numberOfFrames = m_playbackControl->getNumberOfFrames(m_colorStream);
 
