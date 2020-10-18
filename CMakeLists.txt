@@ -65,16 +65,6 @@ target_include_directories(OpenNI2 PUBLIC ${OpenNI2_INCLUDE_DIR}
 target_compile_definitions(OpenNI2 PRIVATE OPENNI2_EXPORT)
 
 
-# ---------- OpenNI2 OniFile ----------
-set(OniFile_DIR "${OpenNI2_DIR}/Source/Drivers/OniFile")
-
-file(GLOB OniFile_SRC "${OniFile_DIR}/*.cpp")
-
-add_library(OniFile SHARED ${OniFile_SRC} ${OpenNI2_FORMATS_SRC} ${LibJPEG_SRC})
-target_link_libraries(OniFile PRIVATE XnLib)
-target_include_directories(OniFile PRIVATE ${OniFile_DIR} ${OpenNI2_INCLUDE_DIR} ${OpenNI2_FORMATS_INCLUDE_DIR} ${LibJPEG_DIR})
-
-
 # ---------- openni_player ----------
 set(openni_player_SRC_DIR "${PROJECT_SOURCE_DIR}/sources")
 set(openni_player_SRC ${openni_player_SRC_DIR}/main.cpp
@@ -91,4 +81,13 @@ target_link_libraries(openni_player Qt5::Core Qt5::Widgets Qt5::Multimedia Qt5::
                                     OpenNI2)
 target_compile_features(openni_player PRIVATE cxx_std_17)
 
-set_target_properties(OniFile PROPERTIES LIBRARY_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:openni_player>/OpenNI2/Drivers/)
+
+# ---------- OpenNI2 OniFile ----------
+set(OniFile_DIR "${OpenNI2_DIR}/Source/Drivers/OniFile")
+
+file(GLOB OniFile_SRC "${OniFile_DIR}/*.cpp")
+
+add_library(OniFile SHARED ${OniFile_SRC} ${OpenNI2_FORMATS_SRC} ${LibJPEG_SRC})
+target_link_libraries(OniFile PRIVATE XnLib)
+target_include_directories(OniFile PRIVATE ${OniFile_DIR} ${OpenNI2_INCLUDE_DIR} ${OpenNI2_FORMATS_INCLUDE_DIR} ${LibJPEG_DIR})
+set_target_properties(OniFile PROPERTIES RUNTIME_OUTPUT_DIRECTORY $<TARGET_FILE_DIR:openni_player>/OpenNI2/Drivers/)
