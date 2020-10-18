@@ -142,8 +142,6 @@ void OniFrameSource::loadOniFile(const QString& path)
     openniCheckError(m_colorStream.start());
     openniCheckError(m_depthStream.start());
 
-    m_playbackControl->seek(m_colorStream, 100);
-
     emit durationChanged(m_numberOfFrames);
 }
 

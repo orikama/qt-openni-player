@@ -10,6 +10,11 @@ set(CMAKE_AUTOUIC ON)
 find_package(Qt5 COMPONENTS Core Widgets Multimedia MultimediaWidgets REQUIRED)
 
 
+if(UNIX AND NOT APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+endif()
+
+
 set(third_party_DIR "${PROJECT_SOURCE_DIR}/third_party")
 
 
@@ -28,15 +33,14 @@ else()
 endif()
 
 add_library(XnLib STATIC ${XnLib_SRC})
-target_include_directories(XnLib PUBLIC "${XnLib_DIR}/Include"
-                                        "${XnLib_DIR}/Driver/Win32/Build/sys")
+
+target_include_directories(XnLib PUBLIC "${XnLib_DIR}/Include")
+if(WIN32)
+    target_include_directories(XnLib PRIVATE "${XnLib_DIR}/Driver/Win32/Build/sys")
+endif()
+
 target_compile_definitions(XnLib PRIVATE XnLib_EXPORT)
 set_target_properties(XnLib PROPERTIES LINKER_LANGUAGE CXX)
-
-#set(libusb_DIR "${XnLib_DIR}/ThirdParty/libusb-1.0.9-Android")
-#file(GLOB libusb_SRC ${libusb_DIR}/libusb *.c)
-
-#add_library(libusb STATIC ${libusb_SRC})
 
 
 # ---------- LibJPEG ----------
@@ -55,10 +59,9 @@ file(GLOB OpenNI2_FORMATS_SRC "${OpenNI2_DIR}/Source/Drivers/OniFile/Formats/*.c
 set(OpenNI2_SRC ${OpenNI2_CORE_SRC} ${OpenNI2_FORMATS_SRC})
 
 add_library(OpenNI2 SHARED ${OpenNI2_SRC} ${LibJPEG_SRC})
-target_link_libraries(OpenNI2 PUBLIC XnLib)
+target_link_libraries(OpenNI2 PRIVATE XnLib)
 target_include_directories(OpenNI2 PUBLIC ${OpenNI2_INCLUDE_DIR}
-                                   PUBLIC "${OpenNI2_DIR}/Source/Drivers/OniFile/Formats"
-                                          ${LibJPEG_DIR})
+                                   PRIVATE ${OpenNI2_FORMATS_INCLUDE_DIR} ${LibJPEG_DIR})
 target_compile_definitions(OpenNI2 PRIVATE OPENNI2_EXPORT)
 
 
@@ -68,8 +71,8 @@ set(OniFile_DIR "${OpenNI2_DIR}/Source/Drivers/OniFile")
 file(GLOB OniFile_SRC "${OniFile_DIR}/*.cpp")
 
 add_library(OniFile SHARED ${OniFile_SRC} ${OpenNI2_FORMATS_SRC} ${LibJPEG_SRC})
-target_link_libraries(OniFile PUBLIC XnLib)
-target_include_directories(OniFile PUBLIC ${OniFile_DIR} ${OpenNI2_INCLUDE_DIR} ${OpenNI2_FORMATS_INCLUDE_DIR} ${LibJPEG_DIR})
+target_link_libraries(OniFile PRIVATE XnLib)
+target_include_directories(OniFile PRIVATE ${OniFile_DIR} ${OpenNI2_INCLUDE_DIR} ${OpenNI2_FORMATS_INCLUDE_DIR} ${LibJPEG_DIR})
 
 
 # ---------- openni_player ----------
@@ -84,8 +87,6 @@ set(openni_player_SRC ${openni_player_SRC_DIR}/main.cpp
 
 
 add_executable(openni_player ${openni_player_SRC})
-#target_include_directories(openni_player PRIVATE ${openni2_INCLUDE_PATH})
-#target_link_directories(openni_player PRIVATE ${openni2_LIB_DIR})
 target_link_libraries(openni_player Qt5::Core Qt5::Widgets Qt5::Multimedia Qt5::MultimediaWidgets
                                     OpenNI2)
 target_compile_features(openni_player PRIVATE cxx_std_17)
